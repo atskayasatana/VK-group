@@ -23,8 +23,11 @@ VK_GROUP_ID =
 Также нужно иметь аккаунт [ВКонтакте](https://vk.com) и сообщество, где будут публиковаться комиксы о Python.
 
 После того, как будет создан аккаунт, на [странице разработчиков](https://vk.com/editapp?act=create) нужно создать standalone-приложение:
+![](https://github.com/atskayasatana/Images/blob/fd1c5aed52faa501d446540caa5a4c025a330338/new_app_vk.png)
 
 Переходим в настройки и копируем ID приложения в .env файл, переменная VK_CLIENT_ID.
+
+![](https://github.com/atskayasatana/Images/blob/fd1c5aed52faa501d446540caa5a4c025a330338/id_vk_app.png)
 
 Получим токен для пользователя по инструкции [здесь](https://dev.vk.com/api/access-token/implicit-flow-user):
 1. Вводим в адресной строке:
@@ -33,10 +36,16 @@ https://oauth.vk.com/authorize?client_id=<наш VK_CLIENT_ID>&display=page&scop
 ```
 2. В появившемся окне жмём "Разрешить"
 
+![](https://github.com/atskayasatana/Images/blob/fd1c5aed52faa501d446540caa5a4c025a330338/vk_app_token.png)
+
 3. Копируем из адресной строки появившегося окна в .env токен(переменная VK_ACCESS_TOKEN) и user_id(переменная VK_USER_ID)
+
+![](https://github.com/atskayasatana/Images/blob/fd1c5aed52faa501d446540caa5a4c025a330338/vk_token_final.png)
 
 Также нам понадобится id созданного сообщества, узнать его можно [здесь](https://regvk.com/id/) или на своей странице зайти в Сообщества->Настройки
 и в поле Адрес скопировать цифры после public.
+
+![](https://github.com/atskayasatana/Images/blob/fd1c5aed52faa501d446540caa5a4c025a330338/vk_group_id.png)
 
 ## Запуск скрипта
 
@@ -51,6 +60,8 @@ pip install -r requirements.txt
 python main.py
 ```
 Если не было никаких сообщений об ошибке, то на стене сообщества появится случайный комикс и комментарий автора к нему.
+
+![](https://github.com/atskayasatana/Images/blob/fd1c5aed52faa501d446540caa5a4c025a330338/vk_final.png)
 
 ## Основные функции
 
