@@ -7,70 +7,88 @@ from dotenv import load_dotenv
 from pathlib import Path
 from urllib.parse import urlparse
 
+IMAGE_FOLDER_NAME = 'Comics_Images'
 
-def get_upload_url(url, params):
+
+def get_upload_url(vk_group_id, vk_token, ver):
+    url = 'https://api.vk.com/method/'
     metod = 'photos.getWallUploadServer'
     vk_url = f'{url}/{metod}'
+    params = {'group_id': vk_group_id,
+              'access_token': vk_token,
+              'v': ver
+              }
     vk_response = requests.get(vk_url, params=params)
-    vk_response_json = vk_response.json()
-    try:
-        upload_url = vk_response_json['response']['upload_url']
-    except KeyError:
-        upload_url = None
-        print('Не удалось получить адрес для загрузки.')
-        return
+    upload_url = vk_response.json()['response']['upload_url']
     return upload_url
 
 
-def upload_photo(url, upload_url, params, comics_to_upload):
-    with open(image_dir.joinpath(file_name), 'rb') as file:
-        url = upload_url
-        files = {'photo': file}
-        response = requests.post(url, files=files)
-        response.raise_for_status()
-    response_json = response.json()
-    return response_json['server'], response_json['photo'], response_json['hash']
+def upload_photo(upload_url,
+                 comic_dir,
+                 comic_file,
+                 vk_group_id,
+                 vk_token,
+                 ver
+                 ):
+    file = open(comic_dir.joinpath(comic_file), 'rb')
+    files = {'photo': file}
+    response = requests.post(upload_url, files=files)
+    response.raise_for_status()
+    file.close()
+    upload_data = response.json()
+    return upload_data['server'], upload_data['photo'], upload_data['hash']
 
 
-def save_photo(url, params):
+def save_photo(vk_group_id, vk_token, ver, server, photo, vk_hash):
+    url = 'https://api.vk.com/method/'
     metod = 'photos.saveWallPhoto'
     vk_url = f'{url}/{metod}'
+    params = {'group_id': vk_group_id,
+              'access_token': vk_token,
+              'v': ver,
+              'server': server,
+              'photo': photo,
+              'hash': vk_hash
+              }
     response = requests.post(vk_url, params=params)
     response.raise_for_status()
-    response_json = response.json()
-    media_id = response.json()['response'][0]['id']
-    owner_id = response_json['response'][0]['owner_id']
+    save_photo_metadata = response.json()
+    media_id = save_photo_metadata['response'][0]['id']
+    owner_id = save_photo_metadata['response'][0]['owner_id']
     return media_id, owner_id
 
 
-def post_photo(url, params):
+def post_photo(vk_group_id, vk_token, ver, text, owner_id, media_id):
+    url = 'https://api.vk.com/method/'
     metod = 'wall.post'
     vk_url = f'{url}/{metod}'
+    params = {'owner_id': f'-{vk_group_id}',
+              'access_token': vk_token,
+              'v': ver,
+              'from_group': 0,
+              'message': text,
+              'attachments': f'photo{owner_id}_{media_id}'
+              }
     response = requests.post(vk_url, params=params)
     response.raise_for_status()
     return response
 
 
-def get_last_comics_num(url):
+def get_last_comic_num(url):
     last_num = 1
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-    except requests.exceptions.HTTPError:
-        return
-    response_json = response.json()
-    last_num = response_json['num']
+    response = requests.get(url)
+    response.raise_for_status()
+    last_num = response.json()['num']
     return last_num
 
 
-IMAGE_FOLDER_NAME = 'Comics_Images'
-
-
-if __name__ == '__main__':
-    load_dotenv()
+def get_random_comic():
     url = 'https://xkcd.com'
     last_comics_url = 'https://xkcd.com/info.0.json'
-    last_comics_num = get_last_comics_num(last_comics_url)
+    try:
+        last_comics_num = get_last_comic_num(last_comics_url)
+    except requests.exceptions.HTTPError:
+        last_comics_num = 1
     comics_number = str(random.randint(1, last_comics_num))
     comics_path = 'info.0.json'
     comics_url = f'{url}/{comics_number}/{comics_path}'
@@ -79,57 +97,61 @@ if __name__ == '__main__':
         response.raise_for_status()
     except requests.exceptions.HTTPError:
         response = requests.get(last_comics_url)
+    comics_metadata = response.json()
+    image = comics_metadata['img']
+    comment = comics_metadata['alt']
+    return image, comment
 
-    comics_json = response.json()
+
+def main():
+    load_dotenv()
+
+    vk_token = os.getenv('VK_ACCESS_TOKEN')
+    vk_group_id = os.getenv('VK_GROUP_ID')
+    ver = 5.131
+
+    image, comment = get_random_comic()
 
     current_dir = Path.cwd()
     image_dir = current_dir.joinpath(IMAGE_FOLDER_NAME)
     Path.mkdir(image_dir, exist_ok=True)
 
-    file_name = Path(urlparse(comics_json['img']).path).name
+    file_name = Path(urlparse(image).path).name
 
-    with open(image_dir.joinpath(file_name), 'wb') as file:
-        img_responce = requests.get(comics_json['img'])
-        file.write(img_responce.content)
+    try:
+        with open(image_dir.joinpath(file_name), 'wb') as file:
+            img_responce = requests.get(image)
+            file.write(img_responce.content)
+            
+        upload_url = get_upload_url(vk_group_id, vk_token, ver)
+        
 
-    comment = comics_json['alt']
 
-    vk_url = 'https://api.vk.com/method/'
+        server, photo, vk_hash = upload_photo(upload_url,
+                                              image_dir,
+                                              file_name,
+                                              vk_group_id,
+                                              vk_token,
+                                              ver
+                                              )
 
-    vk_token = os.getenv('VK_ACCESS_TOKEN')
-    vk_group_id = os.getenv('VK_GROUP_ID')
-    vk_user_id = os.getenv('VK_USER_ID')
+        media_id, owner_id = save_photo(vk_group_id,
+                                        vk_token,
+                                        ver,
+                                        server,
+                                        photo,
+                                        vk_hash)
+        post_photo(vk_group_id, vk_token, ver, comment, owner_id, media_id)
+        
+    except ValueError:
+        print('Не удалось загрузить файл')
 
-    params = {'group_id': vk_group_id,
-              'access_token': vk_token,
-              'v': 5.131,
-              }
+    except KeyError:
+        print('Не удалось получить параметры загрузки')
 
-    upload_url = get_upload_url(vk_url, params)
+    finally:
+        shutil.rmtree(image_dir)
 
-    server, photo, vk_hash = upload_photo(vk_url,
-                                          upload_url,
-                                          params,
-                                          image_dir.joinpath(file_name)
-                                          )
 
-    params = {'group_id': vk_group_id,
-              'access_token': vk_token,
-              'v': 5.131,
-              'server': server,
-              'photo': photo,
-              'hash': vk_hash
-              }
-
-    media_id, owner_id = save_photo(vk_url, params)
-
-    params = {'owner_id': f'-{vk_group_id}',
-              'access_token': vk_token,
-              'v': 5.131,
-              'from_group': 0,
-              'message': comics_json['alt'],
-              'attachments': f'photo{owner_id}_{media_id}'
-              }
-
-    post_photo(vk_url, params)
-    shutil.rmtree(image_dir)
+if __name__ == '__main__':
+    main()
