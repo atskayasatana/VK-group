@@ -32,7 +32,7 @@ VK_GROUP_ID =
 Получим токен для пользователя по инструкции [здесь](https://dev.vk.com/api/access-token/implicit-flow-user):
 1. Вводим в адресной строке:
 ```
-https://oauth.vk.com/authorize?client_id=<наш VK_CLIENT_ID>&display=page&scope=friends,photos,groups&response_type=token&v=5.131&state=123456
+https://oauth.vk.com/authorize?client_id=<наш VK_CLIENT_ID>&display=page&scope=friends,photos,groups,wall&response_type=token&v=5.131&state=123456
 ```
 2. В появившемся окне жмём "Разрешить"
 
