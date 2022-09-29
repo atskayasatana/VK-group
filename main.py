@@ -35,7 +35,9 @@ def upload_photo(
         response = requests.post(upload_url, params=params, files=files)
     response.raise_for_status()
     photo_metadata = response.json()
-    return photo_metadata['server'], photo_metadata['photo'], photo_metadata['hash']
+    return (photo_metadata['server'],
+            photo_metadata['photo'],
+            photo_metadata['hash'])
 
 
 def save_photo(
@@ -105,16 +107,13 @@ def main():
 
     try:
         image, comment = get_random_comic()
-        print(comment)
         file_name = Path(urlparse(image).path).name
-        print(file_name)
 
         with open(image_dir.joinpath(file_name), 'wb') as file:
             img_responce = requests.get(image)
             file.write(img_responce.content)
 
         upload_url = get_upload_url(vk_group_id, vk_token, ver)
-        print(upload_url)
 
         server, photo, vk_hash = upload_photo(upload_url, image_dir, file_name,
                                               vk_group_id, vk_token, ver)
@@ -132,7 +131,7 @@ def main():
     except KeyError as key_error:
         print('Не удалось получить параметры загрузки')
         print(key_error)
-        
+
     finally:
         shutil.rmtree(image_dir)
 
